@@ -20,76 +20,61 @@
 
 #include "QGVLayerTiles.h"
 #include <QThread>
-#include <QFile>
+typedef QSharedPointer<QImage> QImagePtr;
 
-class QGvTilesLoader: public QThread
+class QGvTilesLoader : public QThread
 {
-  Q_OBJECT
+    Q_OBJECT
 
 public:
-  QGvTilesLoader(QObject *parent = 0):
-    QThread(parent)
-  {
-    setObjectName("TMSLoader");
-    moveToThread(this);
-    start();
-  }
+    QGvTilesLoader(QObject* parent = 0);
 
-public slots:
-  void  request(QString url, QGV::GeoTilePos tilePos)
-  {
-    if (QFile::exists(url))
-    {
-      const auto  image = new QImage(url);
-      emit        replyFinished(image, tilePos);
-    }
-  }
+public Q_SLOTS:
+    void request(QString url, QGV::GeoTilePos tilePos);
 
-signals:
-  void  replyFinished(QImage *image, QGV::GeoTilePos tilePos);
+Q_SIGNALS:
+    void replyFinished(QImagePtr image, QGV::GeoTilePos tilePos);
 
-  // QThread interface
-
+    // QThread interface
 protected:
-  void  run()
-  {
-    exec();
-  }
+    void run();
 };
 
-class QGV_LIB_DECL  QGVLayerTilesOffline: public QGVLayerTiles
+class QGV_LIB_DECL QGVLayerTilesOffline : public QGVLayerTiles
 {
-  Q_OBJECT
+    Q_OBJECT
 
 public:
-  QGVLayerTilesOffline(QString url);
+    QGVLayerTilesOffline(QString url);
 
-  ~QGVLayerTilesOffline();
+    ~QGVLayerTilesOffline();
 
-protected:
-  virtual QString  tilePosToUrl(const QGV::GeoTilePos &tilePos) const;
-
-  // QGVLayerTiles interface
+Q_SIGNALS:
+    void requestCome(QString url, QGV::GeoTilePos tilePos);
 
 protected:
-  int   minZoomlevel() const;
+    virtual QString tilePosToUrl(const QGV::GeoTilePos& tilePos) const;
 
-  int   maxZoomlevel() const;
+    // QGVLayerTiles interface
 
-private slots:
-  void  replyFinished(QImage *image, QGV::GeoTilePos tilePos);
+protected:
+    int minZoomlevel() const;
 
-private:
-  void  onProjection(QGVMap *geoMap) override;
+    int maxZoomlevel() const;
 
-  void  onClean() override;
-
-  void  request(const QGV::GeoTilePos &tilePos) override;
-
-  void  cancel(const QGV::GeoTilePos &tilePos) override;
+private Q_SLOTS:
+    void replyFinished(QImagePtr image, QGV::GeoTilePos tilePos);
 
 private:
-  QGvTilesLoader                         *mQGvTilesLoader;
-  QMap<QGV::GeoTilePos, QNetworkReply *>  mRequest;
-  QString                                 mUrl;
+    void onProjection(QGVMap* geoMap) override;
+
+    void onClean() override;
+
+    void request(const QGV::GeoTilePos& tilePos) override;
+
+    void cancel(const QGV::GeoTilePos& tilePos) override;
+
+private:
+    QGvTilesLoader* mQGvTilesLoader;
+    QString mUrl;
 };
